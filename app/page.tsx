@@ -48,16 +48,27 @@ const selectedWorks = [
   {
     title: "Social Clinic System",
     summary:
-      "Contributed to login and frontend flows, improving usability for patient data handling.",
-    tags: ["Frontend", "JavaScript", "Clinic Workflow"],
+      "A collaborative work immersion project built with my team to support clinic staff with smoother patient record handling, login access, and organized frontend workflows for day-to-day clinic operations.",
+    tags: ["Work Immersion", "Team Project", "Java", "Frontend", "Login Flow", "Patient Records", "JavaScript", "Clinic Workflow"],
     type: "Patient workflow",
     visual: "clinic",
   },
   {
     title: "Academic Portfolio Site",
     summary:
-      "Built a personal web portfolio with responsive layout, section-based navigation, and custom styling.",
-    tags: ["Next.js", "Tailwind", "UI"],
+      "Portfolio AI Agent: an intelligent Botpress-powered chatbot integrated into my React portfolio to answer resume and profile questions automatically, alongside responsive sections for skills, certificates, projects, and contact links.",
+    tags: [
+      "Portfolio AI Agent",
+      "Botpress Webchat",
+      "Botpress Cloud",
+      "Next.js",
+      "React",
+      "TypeScript",
+      "Tailwind CSS",
+      "JavaScript",
+      "HTML",
+      "CSS",
+    ],
     type: "Personal website",
     visual: "portfolio",
   },
