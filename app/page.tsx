@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { useEffect, useState } from "react";
 
 const skillGroups = [
@@ -234,6 +233,10 @@ const botpressThemeConfig = {
   `,
 };
 
+const botpressInjectScriptUrl = "https://cdn.botpress.cloud/webchat/v3.6/inject.js";
+const botpressConfigScriptUrl =
+  "https://files.bpcontent.cloud/2026/05/25/22/20260525220919-6XQCO6RS.js";
+
 export default function Home() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isPhoneNumberVisible, setIsPhoneNumberVisible] = useState(false);
@@ -246,6 +249,70 @@ export default function Home() {
     setIsContactOpen(false);
     setIsPhoneNumberVisible(false);
   };
+
+  useEffect(() => {
+    type BotpressWindow = Window & {
+      botpress?: {
+        config?: (options: { configuration: typeof botpressThemeConfig }) => void;
+        on?: (eventName: string, callback: () => void) => void;
+      };
+    };
+
+    const botpressWindow = window as BotpressWindow;
+
+    const applyTheme = () => {
+      try {
+        botpressWindow.botpress?.config?.({ configuration: botpressThemeConfig });
+      } catch {
+        window.setTimeout(applyTheme, 250);
+      }
+    };
+
+    const loadScript = (id: string, src: string, onLoad: () => void) => {
+      const existingScript = document.getElementById(id) as HTMLScriptElement | null;
+
+      if (existingScript) {
+        existingScript.addEventListener("load", onLoad, { once: true });
+
+        if (id === "botpress-inject-script" && botpressWindow.botpress) {
+          onLoad();
+        }
+
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = id;
+      script.src = src;
+      script.async = true;
+      script.onload = onLoad;
+      script.onerror = () => {
+        console.warn(`Unable to load ${src}`);
+      };
+
+      document.body.appendChild(script);
+    };
+
+    const loadConfig = () => {
+      loadScript("botpress-config-script", botpressConfigScriptUrl, () => {
+        botpressWindow.botpress?.on?.("webchat:initialized", applyTheme);
+        botpressWindow.botpress?.on?.("webchat:opened", applyTheme);
+        applyTheme();
+
+        let attempts = 0;
+        const themeInterval = window.setInterval(() => {
+          applyTheme();
+          attempts += 1;
+
+          if (attempts >= 20) {
+            window.clearInterval(themeInterval);
+          }
+        }, 500);
+      });
+    };
+
+    loadScript("botpress-inject-script", botpressInjectScriptUrl, loadConfig);
+  }, []);
 
   useEffect(() => {
     if (!isContactOpen) {
@@ -651,53 +718,6 @@ export default function Home() {
         </div>
       ) : null}
 
-      <Script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js" strategy="afterInteractive" />
-      <Script
-        src="https://files.bpcontent.cloud/2026/05/25/22/20260525220919-6XQCO6RS.js"
-        strategy="afterInteractive"
-      />
-      <Script
-        id="botpress-portfolio-theme"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `
-            (() => {
-              const themeConfig = ${JSON.stringify(botpressThemeConfig)};
-
-              const applyTheme = () => {
-                if (!window.botpress || typeof window.botpress.config !== "function") {
-                  window.setTimeout(applyTheme, 100);
-                  return;
-                }
-
-                const updateTheme = () => {
-                  try {
-                    window.botpress.config({ configuration: themeConfig });
-                  } catch {
-                    window.setTimeout(updateTheme, 250);
-                  }
-                };
-
-                window.botpress.on?.("webchat:initialized", updateTheme);
-                window.botpress.on?.("webchat:opened", updateTheme);
-                updateTheme();
-
-                let attempts = 0;
-                const themeInterval = window.setInterval(() => {
-                  updateTheme();
-                  attempts += 1;
-
-                  if (attempts >= 20) {
-                    window.clearInterval(themeInterval);
-                  }
-                }, 500);
-              };
-
-              applyTheme();
-            })();
-          `,
-        }}
-      />
     </main>
   );
 }
