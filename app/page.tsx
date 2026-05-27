@@ -107,8 +107,8 @@ const certificates = [
 
 const botpressThemeConfig = {
   botName: "cinie ୨୧",
-  botDescription: "Hi, I'm cinie ୨୧. I can help you get to know Kin!",
-  composerPlaceholder: "Type your message...",
+  botDescription: "An AI portfolio assistant for Kin Ira's personal details. Ask cinie ୨୧ about her!",
+  composerPlaceholder: "Type what you want to know....",
   color: "#ec4899",
   radius: 2,
   themeMode: "dark",
