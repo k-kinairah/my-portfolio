@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const skillGroups = [
@@ -348,9 +349,18 @@ export default function Home() {
 
   return (
     <main className="portfolio-shell min-h-screen w-full">
-      <header className="glass-panel sticky top-0 z-30 border-x-0 border-t-0 rounded-none px-5 py-4 sm:px-8 lg:px-12">
+      <header className="glass-panel sticky top-0 z-30 border-x-0 border-t-0 rounded-none px-5 py-3.5 sm:px-8 lg:px-12">
         <nav className="mx-auto flex w-full max-w-[1700px] items-center justify-between gap-4">
-          <p className="text-base font-semibold tracking-wide sm:text-lg">Kin Ira J. Bantiling</p>
+          <a href="#" className="brand-mark-link" aria-label="Kin Ira J. Bantiling home">
+            <Image
+              src="/kin-logo.png"
+              alt="Kin Ira J. Bantiling"
+              width={32}
+              height={29}
+              priority
+              className="brand-mark"
+            />
+          </a>
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-200/95 sm:gap-7">
             <a href="#about" className="transition hover:text-pink-300">
               About

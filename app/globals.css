@@ -31,6 +31,31 @@ body {
   overflow-x: hidden;
 }
 
+.brand-mark-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  width: 1.9rem;
+  min-height: 2.1rem;
+}
+
+.brand-mark {
+  width: 1.9rem;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 0 8px rgba(244, 114, 182, 0.28))
+    drop-shadow(0 0 14px rgba(244, 114, 182, 0.16));
+}
+
+@media (min-width: 48rem) {
+  .brand-mark-link,
+  .brand-mark {
+    width: 2rem;
+  }
+}
+
 html,
 body {
   scrollbar-color: rgba(244, 114, 182, 0.7) rgba(7, 10, 24, 0.92);
