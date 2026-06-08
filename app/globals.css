@@ -35,12 +35,12 @@ body {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  width: 1.9rem;
-  min-height: 2.1rem;
+  width: 2.15rem;
+  min-height: 2.45rem;
 }
 
 .brand-mark {
-  width: 1.9rem;
+  width: 2.15rem;
   height: auto;
   max-width: 100%;
   object-fit: contain;
@@ -52,7 +52,7 @@ body {
 @media (min-width: 48rem) {
   .brand-mark-link,
   .brand-mark {
-    width: 2rem;
+    width: 2.25rem;
   }
 }
 

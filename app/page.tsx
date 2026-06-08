@@ -355,8 +355,8 @@ export default function Home() {
             <Image
               src="/kin-logo.png"
               alt="Kin Ira J. Bantiling"
-              width={32}
-              height={29}
+              width={40}
+              height={44}
               priority
               className="brand-mark"
             />
