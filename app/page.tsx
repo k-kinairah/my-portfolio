@@ -618,7 +618,7 @@ export default function Home() {
       <footer className="footer-shell px-5 pb-10 pt-8 sm:px-8 lg:px-12">
         <div className="mx-auto flex w-full max-w-[1700px] flex-col items-center justify-center gap-4">
           <p className="w-full text-center text-sm text-slate-300/85">
-            &copy; 2026 Kin Ira J. Bantiling | Built with Next.js.
+            &copy; 2026 Kin Ira | Built with React + Next.js
           </p>
         </div>
       </footer>
