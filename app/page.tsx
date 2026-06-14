@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
 const skillGroups = [
   {
     title: "Frontend",
-    items: ["HTML", "CSS", "JavaScript", "React", "Next.js", "Tailwind CSS"],
+    items: ["HTML5", "CSS3", "JavaScript", "React", "Next.js", "Tailwind CSS"],
   },
   {
     title: "Backend",
@@ -14,7 +15,7 @@ const skillGroups = [
   },
   {
     title: "AI & Tools",
-    items: ["AI Fundamentals", "Botpress", "Prompt Engineering Basics", "Git & GitHub", "VS Code", "Data Modeling"],
+    items: ["Botpress", "AI Fundamentals", "Git/GitHub", "VS Code", "Data Modeling"],
   },
 ];
 
@@ -89,12 +90,14 @@ const certificates = [
     year: "2024",
     focus: "Leadership",
     detail: "Recognized for servant leadership, character, and campus involvement.",
+    image: "/certificates/thaddean-servant-leaders.png",
   },
   {
     title: "Chasing Dreams with Grit & Determination",
     year: "2025",
     focus: "Personal Growth",
     detail: "Completed a development program centered on resilience, ambition, and discipline.",
+    image: "/certificates/chasing-dreams.png",
   },
   {
     title:
@@ -102,6 +105,15 @@ const certificates = [
     year: "2026",
     focus: "Digital Future",
     detail: "Joined youth-focused discussions on internet governance and trusted digital spaces.",
+    image: "/certificates/phyigf.png",
+  },
+  {
+    title: "2nd Innovex 2026: International Student Conference",
+    year: "2026",
+    focus: "International Conference",
+    detail:
+      "Showcased my Smart Library System on an international stage, presenting a transformative technology project built for smarter access, learning, and innovation.",
+    image: "/certificates/innovex-2026.png",
   },
 ];
 
@@ -157,7 +169,18 @@ const botpressThemeConfig = {
     }
 
     .bpHeaderContentTitle {
+      display: flex !important;
+      align-items: center !important;
       font-size: 0.92rem !important;
+      line-height: 1 !important;
+      margin: 0 !important;
+      min-height: 2.1rem !important;
+      padding-top: 0.08rem !important;
+    }
+
+    .bpHeaderContentTitleContainer {
+      align-items: center !important;
+      display: flex !important;
     }
 
     .bpHeaderContentDescription {
@@ -438,10 +461,10 @@ export default function Home() {
           <article className="glass-panel reveal rounded-3xl border-b-0 p-6 sm:p-8 lg:p-10">
             <h3 className="display-text text-3xl font-semibold">About</h3>
             <p className="mt-4 w-full max-w-none text-justify text-slate-100/90">
-              I&apos;m Kin Ira J. Bantiling, a BS Computer Science student at PHINMA - SJCDC and a
-              consistent Dean&apos;s Lister. I build practical systems that improve real workflows, with
-              hands-on focus on web development, databases, and user experience. My goal is to grow into a
-              dependable Software Engineer or AI Engineer who builds technology people can trust and use.
+              I&apos;m Kin Ira J. Bantiling, a BS Computer Science student at PHINMA - SJCDC. I build
+              practical systems that improve real workflows, with hands-on focus on web development,
+              databases, and user experience. My goal is to grow into a dependable Software Engineer or AI
+              Engineer who builds technology people can trust and use.
             </p>
             <button
               type="button"
@@ -479,6 +502,58 @@ export default function Home() {
       </section>
 
       <section id="skills" className="section-ambient section-skills px-5 py-10 sm:px-8 sm:py-11 lg:px-12 lg:py-12">
+        <style>{`
+          #skills .skill-grid {
+            gap: 1.35rem;
+          }
+
+          @media (min-width: 80rem) {
+            #skills .skill-grid {
+              grid-template-columns: repeat(3, minmax(0, 318px));
+              gap: 1.45rem;
+            }
+          }
+
+          #skills .skill-card {
+            min-height: 210px;
+            border-color: rgba(244, 114, 182, 0.18);
+            background:
+              linear-gradient(165deg, rgba(15, 23, 42, 0.86) 0%, rgba(9, 14, 30, 0.94) 100%),
+              radial-gradient(88% 84% at 50% 0%, rgba(244, 114, 182, 0.1), transparent 70%);
+          }
+
+          #skills .skill-card:hover,
+          #skills .skill-card:focus-visible {
+            border-color: rgba(244, 114, 182, 0.76);
+            box-shadow:
+              0 22px 50px rgba(4, 6, 20, 0.46),
+              0 0 0 1px rgba(125, 211, 252, 0.22),
+              0 0 34px rgba(236, 72, 153, 0.18);
+          }
+
+          #skills .skill-card-title {
+            color: #f9a8d4;
+            text-shadow:
+              0 0 12px rgba(244, 114, 182, 0.34),
+              0 0 24px rgba(236, 72, 153, 0.18);
+          }
+
+          #skills .skill-card-title::after {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.88), rgba(125, 211, 252, 0.7), transparent);
+          }
+
+          #skills .skill-chip {
+            border-color: rgba(244, 114, 182, 0.26);
+            background: rgba(30, 41, 59, 0.68);
+          }
+
+          #skills .skill-card:hover .skill-chip,
+          #skills .skill-card:focus-visible .skill-chip {
+            border-color: rgba(244, 114, 182, 0.48);
+            background: rgba(244, 114, 182, 0.14);
+          }
+        `}</style>
         <div className="mx-auto w-full max-w-[1700px]">
           <h3 className="display-text text-center text-3xl font-semibold sm:text-4xl">
             Technical Proficiency
@@ -494,8 +569,12 @@ export default function Home() {
                   {group.title}
                 </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-2.5">
-                  {group.items.map((item) => (
-                    <span key={item} className="skill-chip px-3.5 py-1.5 text-sm">
+                  {group.items.map((item, itemIndex) => (
+                    <span
+                      key={item}
+                      className="skill-chip px-3.5 py-1.5 text-sm"
+                      style={{ "--chip-index": itemIndex } as CSSProperties}
+                    >
                       {item}
                     </span>
                   ))}
@@ -578,6 +657,46 @@ export default function Home() {
       </section>
 
       <section id="certificates" className="section-ambient px-5 pb-8 pt-6 sm:px-8 lg:px-12">
+        <style>{`
+          #certificates .certificate-card {
+            min-height: 260px;
+            overflow: visible;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            perspective: 1200px;
+          }
+
+          #certificates .certificate-card-inner {
+            position: absolute;
+            inset: 0;
+            transform-style: preserve-3d;
+            transition: transform 520ms cubic-bezier(0.2, 0.78, 0.2, 1);
+          }
+
+          #certificates .certificate-card:hover .certificate-card-inner,
+          #certificates .certificate-card:focus .certificate-card-inner,
+          #certificates .certificate-card:focus-visible .certificate-card-inner {
+            transform: rotateY(180deg);
+          }
+
+          #certificates .certificate-card-face {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            backface-visibility: hidden;
+            border-radius: 1.25rem;
+          }
+
+          #certificates .certificate-card-back {
+            transform: rotateY(180deg);
+          }
+
+          #certificates .certificate-image {
+            object-fit: contain;
+            padding: 0.45rem;
+          }
+        `}</style>
         <div className="mx-auto w-full max-w-[1700px]">
           <article className="certificate-showcase rounded-3xl p-6 sm:p-8 lg:p-10">
             <div className="certificate-header">
@@ -591,23 +710,37 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="certificate-grid mt-7">
+            <div className="certificate-grid mt-7 grid grid-cols-1 lg:!grid-cols-4">
               {certificates.map((certificate, index) => (
                 <article
                   key={certificate.title}
-                  className={index === 2 ? "certificate-card certificate-card-featured" : "certificate-card"}
+                  className={index >= 2 ? "certificate-card certificate-card-featured" : "certificate-card"}
+                  tabIndex={0}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <span className="certificate-index">{String(index + 1).padStart(2, "0")}</span>
-                    <span className="certificate-year">{certificate.year}</span>
+                  <div className="certificate-card-inner">
+                    <div className="certificate-card-face certificate-card-front">
+                      <div className="flex items-start justify-between gap-4">
+                        <span className="certificate-index">{String(index + 1).padStart(2, "0")}</span>
+                        <span className="certificate-year">{certificate.year}</span>
+                      </div>
+                      <p className="mt-5 text-xs uppercase tracking-[0.16em] text-cyan-200/85">
+                        {certificate.focus}
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold leading-tight text-white">
+                        {certificate.title}
+                      </h4>
+                      <p className="mt-4 text-sm leading-6 text-slate-200/78">{certificate.detail}</p>
+                    </div>
+                    <div className="certificate-card-face certificate-card-back">
+                      <Image
+                        src={certificate.image}
+                        alt={`${certificate.title} certificate`}
+                        fill
+                        sizes="(min-width: 1024px) 24vw, 92vw"
+                        className="certificate-image"
+                      />
+                    </div>
                   </div>
-                  <p className="mt-5 text-xs uppercase tracking-[0.16em] text-cyan-200/85">
-                    {certificate.focus}
-                  </p>
-                  <h4 className="mt-2 text-xl font-semibold leading-tight text-white">
-                    {certificate.title}
-                  </h4>
-                  <p className="mt-4 text-sm leading-6 text-slate-200/78">{certificate.detail}</p>
                 </article>
               ))}
             </div>
