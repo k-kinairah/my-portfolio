@@ -1,59 +1,254 @@
 "use client";
 
 import Image from "next/image";
-import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import type { CSSProperties, MouseEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const skillGroups = [
+// Hand-drawn stand-ins for concepts/standards with no official product logo
+// at all (WebSockets, SQL, AI Fundamentals, Tkinter, Data Modeling).
+const skillGlyphs = {
+  bolt: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <polygon points="13,2 4,14 11,14 9,22 20,10 12,10" />
+    </svg>
+  ),
+  database: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="7" ry="3" />
+      <path d="M5 5v6c0 1.66 3.13 3 7 3s7-1.34 7-3V5" />
+      <path d="M5 11v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6" />
+    </svg>
+  ),
+  chat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="12" rx="3" />
+      <path d="M7 16l-1.5 4 5-4" />
+      <circle cx="8" cy="10" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="10" r="0.8" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="10" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  sparkle: (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7z" />
+    </svg>
+  ),
+  window: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <circle cx="6.2" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  server: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="5.5" rx="1.4" />
+      <rect x="3" y="9.25" width="18" height="5.5" rx="1.4" />
+      <rect x="3" y="15.5" width="18" height="5.5" rx="1.4" />
+      <circle cx="6.6" cy="5.75" r="0.65" fill="currentColor" stroke="none" />
+      <circle cx="6.6" cy="12" r="0.65" fill="currentColor" stroke="none" />
+      <circle cx="6.6" cy="18.25" r="0.65" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  // Three source tables feeding into one modeled, gear-framed store — the
+  // same idea as the classic "data modeling" clip-art mark, redrawn as
+  // original line art (that mark itself is stock art we can't hotlink).
+  datamodel: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="5.4" cy="3.4" rx="2" ry="0.8" />
+      <ellipse cx="12" cy="3.4" rx="2" ry="0.8" />
+      <ellipse cx="18.6" cy="3.4" rx="2" ry="0.8" />
+      <path d="M5.4 4.2c0 2.2 3.2 3.9 6.6 4.8" />
+      <path d="M12 4.2v4.8" />
+      <path d="M18.6 4.2c0 2.2-3.2 3.9-6.6 4.8" />
+      <circle cx="12" cy="16" r="4.3" />
+      <path d="M12 10.7v1.1M12 20.2v1.1M17.3 16h-1.1M6.8 16h-1.1M15.85 12.35l-.8.8M8.95 19.65l-.8.8M15.85 19.65l-.8-.8M8.95 12.35l-.8-.8" />
+      <ellipse cx="12" cy="14.8" rx="2.1" ry="0.75" />
+      <path d="M9.9 14.8v2.4c0 .5.94.9 2.1.9s2.1-.4 2.1-.9v-2.4" />
+    </svg>
+  ),
+};
+
+// A single flat stack instead of Frontend/Backend/AI & Tools buckets.
+// `icon` is a skillicons.dev slug (https://skillicons.dev). `iconUrls` are
+// direct logo URLs, tried in order if `icon` is absent or fails to load
+// (skillicons.dev doesn't carry Botpress, XAMPP, or a WebSocket mark, and
+// its own "apache" glyph renders as a solid dark block, so those go straight
+// to a verified direct source instead). `invertIcon` flips a black-only
+// logo to white so it reads against the dark card. `glyph` names a
+// hand-drawn icon from `skillGlyphs` above for concepts/standards that don't
+// have an official product logo at all — used directly, or as the last
+// resort after every image source fails, before ever falling back to a
+// plain monogram.
+const skills = [
+  { name: "HTML5", icon: "html" },
+  { name: "CSS3", icon: "css" },
+  { name: "JavaScript", icon: "js" },
+  { name: "TypeScript", icon: "ts" },
+  { name: "React", icon: "react" },
   {
-    title: "Frontend",
-    items: ["HTML5", "CSS3", "JavaScript", "React", "Next.js", "Tailwind CSS"],
+    name: "Next.js",
+    iconUrls: ["/skills/nextjs.png", "https://skillicons.dev/icons?i=next"],
   },
+  { name: "Tailwind CSS", icon: "tailwind" },
   {
-    title: "Backend",
-    items: ["PHP", "Python", "Java", "C#", "Django", "MySQL", "SQL"],
+    name: "PHP",
+    iconUrls: ["/skills/php.png", "https://skillicons.dev/icons?i=php"],
   },
+  { name: "Python", icon: "py" },
+  { name: "FastAPI", icon: "fastapi" },
   {
-    title: "AI & Tools",
-    items: ["Botpress", "AI Fundamentals", "Git/GitHub", "VS Code", "Data Modeling"],
+    name: "WebSockets",
+    iconUrls: ["/skills/websockets.png"],
+    glyph: "bolt",
   },
-];
+  { name: "Java", icon: "java" },
+  {
+    name: "C#",
+    iconUrls: ["/skills/csharp.png", "https://skillicons.dev/icons?i=cs"],
+  },
+  { name: "Django", icon: "django" },
+  { name: "MySQL", icon: "mysql" },
+  { name: "SQLite", icon: "sqlite" },
+  { name: "SQL", glyph: "database" },
+  {
+    name: "Botpress",
+    iconUrls: [
+      "/skills/botpress.png",
+      "https://www.vectorlogo.zone/logos/botpressio/botpressio-icon.svg",
+    ],
+    glyph: "chat",
+  },
+  { name: "AI Fundamentals", glyph: "sparkle" },
+  { name: "Git/GitHub", icon: "git" },
+  {
+    name: "Apache/XAMPP",
+    iconUrls: [
+      "/skills/xampp.png",
+      "https://cdn.simpleicons.org/xampp",
+      "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apache/apache-original.svg",
+    ],
+    glyph: "server",
+  },
+  { name: "Tkinter", icon: "py", glyph: "window" },
+  {
+    name: "VS Code",
+    iconUrls: ["/skills/vscode.png", "https://skillicons.dev/icons?i=vscode"],
+  },
+  { name: "Data Modeling", glyph: "datamodel" },
+] satisfies {
+  name: string;
+  icon?: string;
+  iconUrls?: string[];
+  invertIcon?: boolean;
+  glyph?: keyof typeof skillGlyphs;
+}[];
+
+const totalSkillCount = skills.length;
+
+// Three even-ish rows for the scrolling "stack" marquee.
+const skillMarqueeRows = [skills.slice(0, 8), skills.slice(8, 16), skills.slice(16, 24)];
+
+function SkillChip({
+  name,
+  icon,
+  iconUrls,
+  invertIcon,
+  glyph,
+  duplicate,
+}: {
+  name: string;
+  icon?: string;
+  iconUrls?: string[];
+  invertIcon?: boolean;
+  glyph?: keyof typeof skillGlyphs;
+  duplicate?: boolean;
+}) {
+  // Try the image sources in order (skillicons.dev, then any direct logo
+  // URLs given); once all are exhausted, fall back to the hand-drawn glyph
+  // if there is one, and only then to a bare monogram.
+  const imageSources = [
+    icon ? `https://skillicons.dev/icons?i=${icon}` : null,
+    ...(iconUrls ?? []),
+  ].filter((src): src is string => Boolean(src));
+
+  const [attempt, setAttempt] = useState(0);
+  const currentSrc = imageSources[attempt];
+  const advance = () => setAttempt((value) => value + 1);
+
+  return (
+    <span
+      className={`skill-chip${duplicate ? " skill-chip-duplicate" : ""}`}
+      aria-hidden={duplicate || undefined}
+    >
+      {currentSrc ? (
+        <img
+          src={currentSrc}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className={`skill-chip-icon${invertIcon ? " skill-chip-icon-invert" : ""}`}
+          onError={advance}
+          onLoad={(event) => {
+            // Some logo CDNs return a 200 with an empty/blank SVG for an
+            // unrecognized slug instead of a real HTTP error, so onError
+            // alone won't catch it — treat a zero-size image as a failure.
+            if (event.currentTarget.naturalWidth === 0) advance();
+          }}
+        />
+      ) : glyph ? (
+        <span className="skill-chip-glyph" aria-hidden="true">
+          {skillGlyphs[glyph]}
+        </span>
+      ) : (
+        <span className="skill-chip-fallback" aria-hidden="true">
+          {name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()}
+        </span>
+      )}
+      {name}
+    </span>
+  );
+}
 
 const journeyTimeline = [
   {
-    stage: "College",
-    school: "PHINMA - SJCDC",
-    credential: "BS Computer Science",
-    focus: "Focused on software engineering, web development, and database systems.",
+    label: "College",
+    heading: "PHINMA - SJCDC",
+    subheading: "BS Computer Science",
+    description: "Focused on software engineering, web development, and database systems.",
   },
   {
-    stage: "Senior High",
-    school: "Rosario Institute",
-    credential: "ICT Strand",
-    focus: "Built core technical foundations and strengthened practical computing skills.",
+    label: "First Project",
+    heading: "SmartLib",
+    subheading: "Full-stack library system",
+    description:
+      "A self-service library kiosk built for PHINMA - SJCDC — role-based sign-in, live checkout, and a homegrown recommendation engine, hand-rolled without third-party libraries.",
   },
   {
-    stage: "Junior High",
-    school: "Bagbag National High School",
-    credential: "Secondary Education",
-    focus: "Developed consistent study habits and an early interest in technology.",
-  },
-  {
-    stage: "Elementary",
-    school: "Silangan Elementary School",
-    credential: "Primary Education",
-    focus: "Started the learning journey with strong fundamentals and discipline.",
+    label: "Current",
+    heading: "Secret Grounds System",
+    subheading: "Full-stack POS system",
+    description:
+      "A self-hosted management platform for a gaming lounge — real-time session control, billing, and remote PC commands across a LAN, no cloud service required.",
   },
 ];
 
 const selectedWorks = [
   {
-    title: "Social Clinic System",
+    title: "Secret Grounds System",
     summary:
-      "A collaborative work immersion project built with my team to support clinic staff with smoother patient record handling, login access, and organized frontend workflows for day-to-day clinic operations.",
-    tags: ["Work Immersion", "Team Project", "Java", "Frontend", "Login Flow", "Patient Records", "JavaScript", "Clinic Workflow"],
-    type: "Patient workflow",
-    visual: "clinic",
+      "A self-hosted management platform for a gaming lounge — a cashier PC runs the server that owns billing and member accounts, while each customer PC runs a locked-down client that starts, tracks, and stops paid sessions. Built for staff to manage walk-in and member customers, timed sessions, pricing and promos, and remote PC control across a LAN, with no cloud service in the loop.",
+    tags: ["Python", "FastAPI", "WebSockets", "SQLite", "Next.js", "React", "TypeScript", "Tkinter"],
+    type: "Full-stack POS system",
+    visual: "lounge",
+  },
+  {
+    title: "SmartLib",
+    summary:
+      "A self-service library kiosk built for PHINMA - SJCDC, letting students, faculty, and librarians search the catalog, sign in with role-based accounts, and check out or renew books without a staff member at the desk. A companion admin back office handles the catalog, borrowers, fines, reports, and CSV exports, with personalized book recommendations generated entirely from local borrowing and search data — no external API involved.",
+    tags: ["PHP", "MySQL", "JavaScript", "HTML/CSS", "Apache/XAMPP", "Git", "SQL"],
+    type: "Full-stack library system",
+    visual: "library",
   },
   {
     title: "Academic Portfolio Site",
@@ -74,30 +269,24 @@ const selectedWorks = [
     type: "Personal website",
     visual: "portfolio",
   },
-  {
-    title: "Smart Library System",
-    summary:
-      "An AI-powered full-stack library system for school self-service. It supports book search, availability checking, borrowing, receipts, active loan tracking, personalized recommendations, admin management, fines, reports, and analytics.",
-    tags: ["PHP", "MySQL", "JavaScript", "HTML", "CSS", "XAMPP", "SQL"],
-    type: "Full-stack system",
-    visual: "library",
-  },
 ];
 
 const certificates = [
   {
-    title: "New Generation of Thaddean Servant Leaders",
-    year: "2024",
-    focus: "Leadership",
-    detail: "Recognized for servant leadership, character, and campus involvement.",
-    image: "/certificates/thaddean-servant-leaders.png",
+    title: "Python Developer Certification",
+    year: "2026",
+    focus: "Software Development",
+    detail:
+      "300+ hours of hands-on Python — fundamentals, object-oriented programming, data structures, and file handling — turned into real, working programs built from scratch. Officially certified by freeCodeCamp.",
+    image: "/certificates/freecodecamp-python.png",
   },
   {
-    title: "Chasing Dreams with Grit & Determination",
-    year: "2025",
-    focus: "Personal Growth",
-    detail: "Completed a development program centered on resilience, ambition, and discipline.",
-    image: "/certificates/chasing-dreams.png",
+    title: "2nd Innovex 2026: International Student Conference",
+    year: "2026",
+    focus: "International Conference",
+    detail:
+      "Showcased my Smart Library System on an international stage, presenting a transformative technology project built for smarter access, learning, and innovation.",
+    image: "/certificates/innovex-2026.png",
   },
   {
     title:
@@ -108,12 +297,18 @@ const certificates = [
     image: "/certificates/phyigf.png",
   },
   {
-    title: "2nd Innovex 2026: International Student Conference",
-    year: "2026",
-    focus: "International Conference",
-    detail:
-      "Showcased my Smart Library System on an international stage, presenting a transformative technology project built for smarter access, learning, and innovation.",
-    image: "/certificates/innovex-2026.png",
+    title: "Chasing Dreams with Grit & Determination",
+    year: "2025",
+    focus: "Personal Growth",
+    detail: "Completed a development program centered on resilience, ambition, and discipline.",
+    image: "/certificates/chasing-dreams.png",
+  },
+  {
+    title: "New Generation of Thaddean Servant Leaders",
+    year: "2024",
+    focus: "Leadership",
+    detail: "Recognized for servant leadership, character, and campus involvement.",
+    image: "/certificates/thaddean-servant-leaders.png",
   },
 ];
 
@@ -139,8 +334,8 @@ const botpressThemeConfig = {
       border-radius: 20px !important;
       background:
         radial-gradient(120% 92% at 10% 0%, rgba(236, 72, 153, 0.16) 0%, rgba(236, 72, 153, 0) 70%),
-        radial-gradient(95% 88% at 100% 12%, rgba(56, 189, 248, 0.11) 0%, rgba(56, 189, 248, 0) 72%),
-        linear-gradient(165deg, rgba(15, 18, 38, 0.96) 0%, rgba(8, 13, 31, 0.98) 100%) !important;
+        radial-gradient(95% 88% at 100% 12%, rgba(251, 113, 133, 0.11) 0%, rgba(251, 113, 133, 0) 72%),
+        linear-gradient(165deg, rgba(38, 22, 46, 0.96) 0%, rgba(20, 13, 27, 0.98) 100%) !important;
       box-shadow:
         0 24px 70px rgba(1, 5, 17, 0.58),
         0 0 44px rgba(236, 72, 153, 0.16) !important;
@@ -158,7 +353,7 @@ const botpressThemeConfig = {
       border-bottom: 1px solid rgba(244, 114, 182, 0.24) !important;
       background:
         radial-gradient(100% 120% at 0% 0%, rgba(244, 114, 182, 0.24) 0%, transparent 66%),
-        linear-gradient(180deg, rgba(15, 18, 38, 0.9) 0%, rgba(10, 14, 34, 0.88) 100%) !important;
+        linear-gradient(180deg, rgba(36, 21, 44, 0.9) 0%, rgba(23, 15, 32, 0.88) 100%) !important;
       color: #fce7f3 !important;
     }
 
@@ -192,7 +387,7 @@ const botpressThemeConfig = {
     .bpFabContainer {
       background:
         radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.95) 0 13%, transparent 14%),
-        radial-gradient(circle at 72% 76%, rgba(56, 189, 248, 0.54) 0%, transparent 38%),
+        radial-gradient(circle at 72% 76%, rgba(251, 113, 133, 0.54) 0%, transparent 38%),
         linear-gradient(145deg, rgba(244, 114, 182, 0.95) 0%, rgba(236, 72, 153, 0.9) 100%) !important;
       color: #ffffff !important;
     }
@@ -215,20 +410,20 @@ const botpressThemeConfig = {
       border: 1px solid rgba(244, 114, 182, 0.22) !important;
       border-radius: 15px !important;
       background:
-        linear-gradient(165deg, rgba(15, 18, 38, 0.76) 0%, rgba(10, 14, 34, 0.86) 100%) !important;
+        linear-gradient(165deg, rgba(36, 21, 44, 0.76) 0%, rgba(23, 15, 32, 0.86) 100%) !important;
       color: rgba(248, 250, 252, 0.94) !important;
       box-shadow: 0 10px 24px rgba(3, 6, 23, 0.18) !important;
     }
 
     .bpComposerWrapper {
       border-top: 1px solid rgba(244, 114, 182, 0.16) !important;
-      background: rgba(7, 10, 24, 0.34) !important;
+      background: rgba(20, 12, 26, 0.34) !important;
     }
 
     .bpComposerContainer {
       border: 1px solid rgba(244, 114, 182, 0.34) !important;
       border-radius: 999px !important;
-      background: rgba(7, 10, 24, 0.68) !important;
+      background: rgba(20, 12, 26, 0.68) !important;
       box-shadow: 0 10px 26px rgba(3, 6, 23, 0.24) !important;
     }
 
@@ -263,7 +458,7 @@ const botpressThemeConfig = {
 
     .bpComposerSendButton {
       color: #ffffff !important;
-      background: linear-gradient(135deg, #f472b6 0%, #ec4899 82%, #38bdf8 160%) !important;
+      background: linear-gradient(135deg, #f472b6 0%, #ec4899 82%, #fb7185 160%) !important;
     }
   `,
 };
@@ -275,6 +470,29 @@ const botpressConfigScriptUrl =
 export default function Home() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isPhoneNumberVisible, setIsPhoneNumberVisible] = useState(false);
+  const certificateRailRef = useRef<HTMLDivElement>(null);
+  const [canScrollCertificatesPrev, setCanScrollCertificatesPrev] = useState(false);
+  const [canScrollCertificatesNext, setCanScrollCertificatesNext] = useState(false);
+
+  const updateCertificateScrollState = () => {
+    const rail = certificateRailRef.current;
+    if (!rail) return;
+    const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+    setCanScrollCertificatesPrev(rail.scrollLeft > 8);
+    setCanScrollCertificatesNext(rail.scrollLeft < maxScrollLeft - 8);
+  };
+
+  const scrollCertificates = (direction: number) => {
+    const rail = certificateRailRef.current;
+    if (!rail) return;
+    rail.scrollBy({ left: direction * rail.clientWidth * 0.86, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    updateCertificateScrollState();
+    window.addEventListener("resize", updateCertificateScrollState);
+    return () => window.removeEventListener("resize", updateCertificateScrollState);
+  }, []);
 
   const openContactModal = () => {
     setIsContactOpen(true);
@@ -283,6 +501,34 @@ export default function Home() {
   const closeContactModal = () => {
     setIsContactOpen(false);
     setIsPhoneNumberVisible(false);
+  };
+
+  const handleNavClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    const hash = event.currentTarget.getAttribute("href");
+    if (!hash || !hash.startsWith("#") || hash.length < 2) return;
+
+    const target = document.getElementById(hash.slice(1));
+    if (!target) return;
+
+    const panel = target.classList.contains("showcase-panel")
+      ? target
+      : target.closest(".showcase-panel") ?? target.querySelector(".showcase-panel");
+
+    if (!panel) return;
+
+    event.preventDefault();
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    (panel as HTMLElement).scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "center",
+    });
+
+    panel.classList.remove("panel-pop");
+    // Force a reflow so the animation restarts even if the same panel was just popped.
+    void (panel as HTMLElement).offsetWidth;
+    panel.classList.add("panel-pop");
+    window.setTimeout(() => panel.classList.remove("panel-pop"), 700);
   };
 
   useEffect(() => {
@@ -385,19 +631,19 @@ export default function Home() {
             />
           </a>
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-200/95 sm:gap-7">
-            <a href="#about" className="transition hover:text-pink-300">
+            <a href="#about" onClick={handleNavClick} className="transition hover:text-pink-300">
               About
             </a>
-            <a href="#journey" className="transition hover:text-pink-300">
+            <a href="#journey" onClick={handleNavClick} className="transition hover:text-pink-300">
               Journey
             </a>
-            <a href="#skills" className="transition hover:text-pink-300">
+            <a href="#skills" onClick={handleNavClick} className="transition hover:text-pink-300">
               Skills
             </a>
-            <a href="#work" className="transition hover:text-pink-300">
+            <a href="#work" onClick={handleNavClick} className="transition hover:text-pink-300">
               Work
             </a>
-            <a href="#certificates" className="transition hover:text-pink-300">
+            <a href="#certificates" onClick={handleNavClick} className="transition hover:text-pink-300">
               Certificates
             </a>
             <button
@@ -411,13 +657,15 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="relative overflow-hidden px-5 pb-20 pt-16 sm:px-8 lg:px-12 lg:pt-20">
-        <div className="mx-auto grid w-full max-w-[1700px] items-center gap-10 lg:grid-cols-[1fr_auto_1fr]">
+      <section className="relative flex min-h-[calc(100svh-4.5rem)] flex-col justify-center overflow-hidden px-5 pb-20 pt-16 sm:px-8 lg:px-12 lg:pt-20">
+        <div className="hero-orb hero-orb-pink" aria-hidden="true" />
+        <div className="hero-orb hero-orb-cyan" aria-hidden="true" />
+        <div className="relative z-10 mx-auto grid w-full max-w-[1700px] -translate-y-8 items-center gap-10 sm:-translate-y-10 lg:-translate-y-16 lg:grid-cols-[1fr_auto_1fr]">
           <div className="hidden gap-10 lg:grid">
-            <div className="glass-panel reveal rounded-2xl px-4 py-3 text-sm text-slate-200/95">
+            <div className="hero-float glass-panel reveal rounded-2xl px-4 py-3 text-sm text-slate-200/95">
               🤖 Future Software Engineer
             </div>
-            <div className="glass-panel reveal reveal-delay-1 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
+            <div className="hero-float hero-float-delay glass-panel reveal reveal-delay-1 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
               💻 Full-Stack Learner
             </div>
           </div>
@@ -443,158 +691,181 @@ export default function Home() {
             >
               View Projects
             </a>
+
+            <div className="hero-stats mt-10">
+              <div className="hero-stat">
+                <p className="hero-stat-value">{selectedWorks.length}</p>
+                <p className="hero-stat-label">Projects Built</p>
+              </div>
+              <div className="hero-stat">
+                <p className="hero-stat-value">{certificates.length}</p>
+                <p className="hero-stat-label">Certifications</p>
+              </div>
+              <div className="hero-stat">
+                <p className="hero-stat-value">{totalSkillCount}</p>
+                <p className="hero-stat-label">Technologies</p>
+              </div>
+            </div>
           </div>
 
           <div className="hidden gap-10 lg:grid">
-            <div className="glass-panel reveal reveal-delay-2 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
+            <div className="hero-float hero-float-delay glass-panel reveal reveal-delay-2 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
               🚀 Strong Work Ethic
             </div>
-            <div className="glass-panel reveal reveal-delay-3 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
+            <div className="hero-float glass-panel reveal reveal-delay-3 rounded-2xl px-4 py-3 text-sm text-slate-200/95">
               🎯 Focused on Growth
             </div>
           </div>
         </div>
+
+        <a href="#about" className="hero-scroll-cue" aria-label="Scroll to About section">
+          <span>Scroll</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M6 9l6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </a>
       </section>
 
       <section id="about" className="px-5 py-6 sm:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-[1700px]">
-          <article className="glass-panel reveal rounded-3xl border-b-0 p-6 sm:p-8 lg:p-10">
-            <h3 className="display-text text-3xl font-semibold">About</h3>
-            <p className="mt-4 w-full max-w-none text-justify text-slate-100/90">
-              I&apos;m Kin Ira J. Bantiling, a BS Computer Science student at PHINMA - SJCDC. I build
-              practical systems that improve real workflows, with hands-on focus on web development,
-              databases, and user experience. My goal is to grow into a dependable Software Engineer or AI
-              Engineer who builds technology people can trust and use.
-            </p>
-            <button
-              type="button"
-              onClick={openContactModal}
-              className="footer-contact-button mt-6 rounded-full px-5 py-2 text-sm font-semibold"
-            >
-              Contact Me
-            </button>
+          <article className="showcase-panel reveal rounded-3xl p-6 sm:p-8 lg:p-10">
+            <div className="split-panel">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-pink-200/90">Introduction</p>
+                <h3 className="display-text mt-2 text-3xl font-semibold sm:text-4xl">About</h3>
+                <p className="mt-4 text-slate-100/90">
+                  I&apos;m Kin Ira J. Bantiling, a BS Computer Science student at PHINMA - SJCDC
+                  building practical, real-world systems — from self-service kiosks to real-time
+                  management platforms. I focus on web development, databases, and the small UX
+                  details that make software genuinely pleasant to use.
+                </p>
+                <p className="mt-3 text-slate-100/90">
+                  I like taking on projects that force me to solve problems end-to-end —
+                  authentication and security, live data sync, and interfaces people don&apos;t
+                  have to think twice about. My goal is to grow into a dependable Software Engineer
+                  or AI Engineer who builds technology people can trust.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <span className="project-chip">Full-Stack Development</span>
+                  <span className="project-chip">Systems Design</span>
+                  <span className="project-chip">Security-Conscious Builds</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={openContactModal}
+                  className="pink-button mt-7 inline-flex items-center justify-center rounded-full px-9 py-3.5 text-base font-semibold text-white transition hover:-translate-y-0.5"
+                >
+                  Contact Me
+                </button>
+              </div>
+
+              <div className="about-facts">
+                <div className="about-fact">
+                  <p className="about-fact-label">Role</p>
+                  <p className="about-fact-value">BS Computer Science Student</p>
+                </div>
+                <div className="about-fact">
+                  <p className="about-fact-label">School</p>
+                  <p className="about-fact-value">PHINMA - SJCDC</p>
+                </div>
+                <div className="about-fact">
+                  <p className="about-fact-label">Focus</p>
+                  <p className="about-fact-value">Full-Stack Development &amp; Systems Design</p>
+                </div>
+                <div className="about-fact">
+                  <p className="about-fact-label">Currently Building</p>
+                  <p className="about-fact-value">Secret Grounds System</p>
+                </div>
+                <div className="about-fact">
+                  <p className="about-fact-label">Goal</p>
+                  <p className="about-fact-value">Software / AI Engineer</p>
+                </div>
+              </div>
+            </div>
           </article>
         </div>
       </section>
 
-      <section id="journey" className="section-ambient section-journey px-5 py-10 sm:px-8 sm:py-11 lg:px-12 lg:py-12">
+      <section id="journey" className="section-ambient section-journey px-5 pb-8 pt-6 sm:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-[1700px]">
-          <h3 className="display-text text-center text-3xl font-semibold sm:text-4xl">Journey</h3>
-          <div className="journey-timeline mt-8">
-            {journeyTimeline.map((item, index) => (
-              <article
-                key={item.stage}
-                className={`journey-node ${index % 2 === 0 ? "journey-node-left" : "journey-node-right"}`}
-              >
-                <span className="journey-marker" aria-hidden />
-                <div className="journey-card-wrap">
-                  <div className="journey-card rounded-3xl p-4 sm:p-5">
-                    <p className="text-xs uppercase tracking-[0.16em] text-cyan-300/90">{item.stage}</p>
-                    <p className="mt-2 text-lg font-semibold text-white sm:text-xl">{item.school}</p>
-                    <p className="mt-1 text-base font-semibold text-slate-300/90 sm:text-lg">{item.credential}</p>
-                    <p className="mt-3 text-sm text-slate-200/85">{item.focus}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="skills" className="section-ambient section-skills px-5 py-10 sm:px-8 sm:py-11 lg:px-12 lg:py-12">
-        <style>{`
-          #skills .skill-grid {
-            gap: 1.35rem;
-          }
-
-          @media (min-width: 80rem) {
-            #skills .skill-grid {
-              grid-template-columns: repeat(3, minmax(0, 318px));
-              gap: 1.45rem;
-            }
-          }
-
-          #skills .skill-card {
-            min-height: 210px;
-            border-color: rgba(244, 114, 182, 0.18);
-            background:
-              linear-gradient(165deg, rgba(15, 23, 42, 0.86) 0%, rgba(9, 14, 30, 0.94) 100%),
-              radial-gradient(88% 84% at 50% 0%, rgba(244, 114, 182, 0.1), transparent 70%);
-          }
-
-          #skills .skill-card:hover,
-          #skills .skill-card:focus-visible {
-            border-color: rgba(244, 114, 182, 0.76);
-            box-shadow:
-              0 22px 50px rgba(4, 6, 20, 0.46),
-              0 0 0 1px rgba(125, 211, 252, 0.22),
-              0 0 34px rgba(236, 72, 153, 0.18);
-          }
-
-          #skills .skill-card-title {
-            color: #f9a8d4;
-            text-shadow:
-              0 0 12px rgba(244, 114, 182, 0.34),
-              0 0 24px rgba(236, 72, 153, 0.18);
-          }
-
-          #skills .skill-card-title::after {
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(244, 114, 182, 0.88), rgba(125, 211, 252, 0.7), transparent);
-          }
-
-          #skills .skill-chip {
-            border-color: rgba(244, 114, 182, 0.26);
-            background: rgba(30, 41, 59, 0.68);
-          }
-
-          #skills .skill-card:hover .skill-chip,
-          #skills .skill-card:focus-visible .skill-chip {
-            border-color: rgba(244, 114, 182, 0.48);
-            background: rgba(244, 114, 182, 0.14);
-          }
-        `}</style>
-        <div className="mx-auto w-full max-w-[1700px]">
-          <h3 className="display-text text-center text-3xl font-semibold sm:text-4xl">
-            Technical Proficiency
-          </h3>
-          <div className="skill-grid mt-6">
-            {skillGroups.map((group) => (
-              <article
-                key={group.title}
-                tabIndex={0}
-                className="skill-card rounded-3xl p-5 sm:p-6"
-              >
-                <p className="skill-card-title text-center text-2xl font-semibold sm:text-3xl">
-                  {group.title}
+          <article className="showcase-panel rounded-3xl p-6 sm:p-8 lg:p-10">
+            <div className="split-panel">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-rose-200/85">The Path</p>
+                <h3 className="display-text mt-2 text-3xl font-semibold sm:text-4xl">Journey</h3>
+                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-300/60">
+                  How I got here
                 </p>
-                <div className="mt-4 flex flex-wrap justify-center gap-2.5">
-                  {group.items.map((item, itemIndex) => (
-                    <span
-                      key={item}
-                      className="skill-chip px-3.5 py-1.5 text-sm"
-                      style={{ "--chip-index": itemIndex } as CSSProperties}
-                    >
-                      {item}
-                    </span>
+                <div className="journey-timeline mt-6">
+                  {journeyTimeline.map((item) => (
+                    <div key={item.label} className="journey-node">
+                      <span className="journey-marker" aria-hidden />
+                      <p className="text-xs uppercase tracking-[0.16em] text-pink-300/90">{item.label}</p>
+                      <p className="mt-2 text-lg font-semibold text-white sm:text-xl">{item.heading}</p>
+                      <p className="mt-1 text-base font-semibold text-slate-300/90 sm:text-lg">
+                        {item.subheading}
+                      </p>
+                      <p className="mt-3 text-sm text-slate-200/85">{item.description}</p>
+                    </div>
                   ))}
                 </div>
-              </article>
-            ))}
-          </div>
+              </div>
+
+              <div id="skills" className="skills-panel">
+                <p className="text-xs uppercase tracking-[0.18em] text-rose-200/85">Capabilities</p>
+                <h3 className="display-text mt-2 text-3xl font-semibold sm:text-4xl">Stack</h3>
+                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-300/60">
+                  Languages, frameworks &amp; tools I build with
+                </p>
+                <div className="skill-marquee-group mt-6">
+                  {skillMarqueeRows.map((row, rowIndex) => (
+                    <div
+                      key={rowIndex}
+                      className={`skill-marquee${rowIndex % 2 === 1 ? " skill-marquee-reverse" : ""}`}
+                    >
+                      <div
+                        className="skill-marquee-track"
+                        style={{ "--marquee-duration": `${26 + rowIndex * 5}s` } as CSSProperties}
+                      >
+                        {[...row, ...row].map((skill, itemIndex) => (
+                          <SkillChip
+                            key={`${skill.name}-${itemIndex}`}
+                            name={skill.name}
+                            icon={skill.icon}
+                            iconUrls={skill.iconUrls}
+                            invertIcon={"invertIcon" in skill && skill.invertIcon === true}
+                            glyph={skill.glyph}
+                            duplicate={itemIndex >= row.length}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
       <section id="work" className="section-ambient section-work px-5 pb-8 pt-6 sm:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-[1700px]">
-          <div className="work-heading">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-cyan-200/85">Selected work</p>
-              <h3 className="display-text mt-2 text-3xl font-semibold sm:text-4xl">My Projects</h3>
+          <article className="showcase-panel rounded-3xl p-6 sm:p-8 lg:p-10">
+            <div className="work-heading">
+              <p className="text-xs uppercase tracking-[0.18em] text-rose-200/85">Selected work</p>
+              <h3 className="display-text text-3xl font-semibold sm:text-4xl">My Projects</h3>
+              <p className="text-xs uppercase tracking-[0.14em] text-slate-300/60">
+                Systems, sites &amp; tools I&apos;ve designed and shipped
+              </p>
             </div>
-          </div>
-          <div className="project-grid mt-5">
-            {selectedWorks.map((work) => (
+            <div className="project-grid mt-7">
+              {selectedWorks.map((work) => (
               <article key={work.title} className="project-card">
                 <div className={`project-visual project-visual-${work.visual}`} aria-hidden="true">
                   <div className="project-window">
@@ -603,18 +874,16 @@ export default function Home() {
                       <span />
                       <span />
                     </div>
-                    {work.visual === "clinic" ? (
-                      <div className="clinic-preview">
-                        <div className="clinic-stat">
-                          <span />
-                          <strong>24</strong>
+                    {work.visual === "lounge" ? (
+                      <div className="lounge-preview">
+                        <div className="lounge-ring">
+                          <span>PC-04</span>
                         </div>
-                        <div className="clinic-lines">
-                          <span />
-                          <span />
-                          <span />
+                        <div className="lounge-status">
+                          <span className="lounge-pill">LOCKED</span>
+                          <span className="lounge-time">01:24:00</span>
                         </div>
-                        <div className="clinic-pulse" />
+                        <div className="lounge-bar" />
                       </div>
                     ) : null}
                     {work.visual === "portfolio" ? (
@@ -651,98 +920,110 @@ export default function Home() {
                   ))}
                 </div>
               </article>
-            ))}
-          </div>
+              ))}
+            </div>
+          </article>
         </div>
       </section>
 
       <section id="certificates" className="section-ambient px-5 pb-8 pt-6 sm:px-8 lg:px-12">
-        <style>{`
-          #certificates .certificate-card {
-            min-height: 260px;
-            overflow: visible;
-            border: 0;
-            background: transparent;
-            padding: 0;
-            perspective: 1200px;
-          }
-
-          #certificates .certificate-card-inner {
-            position: absolute;
-            inset: 0;
-            transform-style: preserve-3d;
-            transition: transform 520ms cubic-bezier(0.2, 0.78, 0.2, 1);
-          }
-
-          #certificates .certificate-card:hover .certificate-card-inner,
-          #certificates .certificate-card:focus .certificate-card-inner,
-          #certificates .certificate-card:focus-visible .certificate-card-inner {
-            transform: rotateY(180deg);
-          }
-
-          #certificates .certificate-card-face {
-            position: absolute;
-            inset: 0;
-            overflow: hidden;
-            backface-visibility: hidden;
-            border-radius: 1.25rem;
-          }
-
-          #certificates .certificate-card-back {
-            transform: rotateY(180deg);
-          }
-
-          #certificates .certificate-image {
-            object-fit: contain;
-            padding: 0.45rem;
-          }
-        `}</style>
         <div className="mx-auto w-full max-w-[1700px]">
-          <article className="certificate-showcase rounded-3xl p-6 sm:p-8 lg:p-10">
+          <article className="showcase-panel rounded-3xl p-6 sm:p-8 lg:p-10">
             <div className="certificate-header">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-pink-200/90">
-                  Milestones
+                  Recognition
                 </p>
                 <h3 className="display-text mt-2 text-3xl font-semibold sm:text-4xl">
                   Certificates
                 </h3>
+                <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-300/60">
+                  Milestones &amp; Achievements
+                </p>
+              </div>
+
+              <div className="certificate-nav-group">
+                <button
+                  type="button"
+                  onClick={() => scrollCertificates(-1)}
+                  className="certificate-nav"
+                  aria-label="Scroll to previous certificate"
+                  disabled={!canScrollCertificatesPrev}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M15 6l-6 6 6 6"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCertificates(1)}
+                  className="certificate-nav"
+                  aria-label="Scroll to next certificate"
+                  disabled={!canScrollCertificatesNext}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M9 6l6 6-6 6"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            <div className="certificate-grid mt-7 grid grid-cols-1 lg:!grid-cols-4">
-              {certificates.map((certificate, index) => (
-                <article
-                  key={certificate.title}
-                  className={index >= 2 ? "certificate-card certificate-card-featured" : "certificate-card"}
-                  tabIndex={0}
-                >
-                  <div className="certificate-card-inner">
-                    <div className="certificate-card-face certificate-card-front">
-                      <div className="flex items-start justify-between gap-4">
-                        <span className="certificate-index">{String(index + 1).padStart(2, "0")}</span>
-                        <span className="certificate-year">{certificate.year}</span>
+            <div className="certificate-rail-wrap mt-7">
+              <div
+                className={`certificate-fade certificate-fade-left${canScrollCertificatesPrev ? " is-visible" : ""}`}
+                aria-hidden="true"
+              />
+              <div
+                className={`certificate-fade certificate-fade-right${canScrollCertificatesNext ? " is-visible" : ""}`}
+                aria-hidden="true"
+              />
+
+              <div
+                ref={certificateRailRef}
+                onScroll={updateCertificateScrollState}
+                className="certificate-grid"
+              >
+                {certificates.map((certificate, index) => (
+                  <article key={certificate.title} className="certificate-card" tabIndex={0}>
+                    <div className="certificate-card-inner">
+                      <div className="certificate-card-face certificate-card-front">
+                        <div className="flex items-start justify-between gap-4">
+                          <span className="certificate-index">{String(index + 1).padStart(2, "0")}</span>
+                          <span className="certificate-year">{certificate.year}</span>
+                        </div>
+                        <p className="mt-5 text-xs uppercase tracking-[0.16em] text-rose-200/85">
+                          {certificate.focus}
+                        </p>
+                        <h4 className="mt-2 text-lg font-semibold leading-tight text-white">
+                          {certificate.title}
+                        </h4>
+                        <p className="mt-4 text-sm leading-6 text-slate-200/78">{certificate.detail}</p>
                       </div>
-                      <p className="mt-5 text-xs uppercase tracking-[0.16em] text-cyan-200/85">
-                        {certificate.focus}
-                      </p>
-                      <h4 className="mt-2 text-lg font-semibold leading-tight text-white">
-                        {certificate.title}
-                      </h4>
-                      <p className="mt-4 text-sm leading-6 text-slate-200/78">{certificate.detail}</p>
+                      <div className="certificate-card-face certificate-card-back">
+                        <Image
+                          src={certificate.image}
+                          alt={`${certificate.title} certificate`}
+                          fill
+                          sizes="(min-width: 1024px) 340px, 84vw"
+                          className="certificate-image"
+                        />
+                      </div>
                     </div>
-                    <div className="certificate-card-face certificate-card-back">
-                      <Image
-                        src={certificate.image}
-                        alt={`${certificate.title} certificate`}
-                        fill
-                        sizes="(min-width: 1024px) 24vw, 92vw"
-                        className="certificate-image"
-                      />
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
           </article>
         </div>
@@ -750,7 +1031,7 @@ export default function Home() {
 
       <footer className="footer-shell px-5 pb-10 pt-8 sm:px-8 lg:px-12">
         <div className="mx-auto flex w-full max-w-[1700px] flex-col items-center justify-center gap-4">
-          <p className="w-full text-center text-sm text-slate-300/85">
+          <p className="w-full pr-14 text-center text-sm text-slate-300/85 sm:pr-0">
             &copy; 2026 Kin Ira | Built with React + Next.js
           </p>
         </div>
@@ -814,10 +1095,10 @@ export default function Home() {
                   </button>
                   <a
                     id="contact-phone-number"
-                    href="tel:+639068842737"
+                    href="tel:+639609309425"
                     className="phone-number-badge rounded-full border border-pink-200/35 bg-pink-300/10 px-4 py-2 text-sm font-semibold text-pink-100"
                   >
-                    +63 906 884 2737
+                    +63 960 930 9425
                   </a>
                 </div>
                 <a
